@@ -290,9 +290,42 @@ See the [Native workspace-level list pattern](/docs/building-with-kessel/referen
 
 ### Adding tests
 
-TBD
+Tests should verify that your application correctly constructs and sends authorization requests to Kessel, and properly handles the responses.
 
-[Example of a testcase for Kessel integration](https://github.com/RedHatInsights/config-manager/blob/a937c5f283fb3acb2931cf2713173f220cd1bd11/internal/http/middleware/authorization/kessel_test.go)
+#### What to test
+
+* **Authorization middleware**: Verify that your middleware sends the correct `Check` or `CheckForUpdate` request to Kessel for each protected endpoint, including the correct resource type, resource ID, relation (permission), and subject.
+* **Allowed and denied scenarios**: Test that a `ALLOWED_TRUE` response grants access and a `ALLOWED_FALSE` response returns 403.
+* **Error handling**: Test that Kessel errors (e.g. connection failures, timeouts) result in an appropriate error response (typically 500), not a silent allow.
+* **Principal types**: Test with both user principals (`identity.User.UserId`) and service account principals (`identity.ServiceAccount.UserId`).
+* **Workspace resolution**: If using the Default or Root Workspace pattern, test that the workspace ID is resolved correctly and that resolution failures are handled.
+* **Feature flag fallback**: Test that `KESSEL_ENABLED=false` cleanly falls back to existing v1 authorization with no side effects, and that toggling it on produces the same authorization outcomes as v1 for equivalent permissions.
+* **Parity between v1 and v2**: During the migration period, verify that enabling Kessel does not change authorization outcomes compared to the existing v1 path. The [insights-rbac parity checker](https://github.com/project-kessel/insights-rbac/blob/master/tests/management/parity_check/test_checker.py) demonstrates this pattern by asserting that v1 operations and v2 relation tuples remain consistent after every mutation.
+* **StreamedListObjects** (workspace-level list pattern): Test handling of the streaming response, including partial results, empty streams when the user has no access, and correct use of the returned workspace IDs as database query filters.
+* **Contingent permissions** (host-centric assets): If using `@rbac.add_contingent_permission()`, test that a user needs *both* the inventory host permission and the app-specific permission. A user holding only one should be denied.
+
+#### How to test
+
+Mock the Kessel gRPC client in your unit tests rather than connecting to a live Kessel instance.
+Create a mock implementation of the Kessel Inventory Service client that:
+
+* Records the requests it receives for assertion
+* Returns configurable responses (`ALLOWED_TRUE`, `ALLOWED_FALSE`) or errors
+
+Then assert that:
+
+* The resource reference in the request has the expected type, ID, and reporter
+* The relation matches the permission being checked
+* The subject reference contains the correct principal ID and type
+
+<Aside type="tip" title="Table-driven tests">
+Use table-driven / parameterized tests to cover combinations of Kessel enabled/disabled, allowed/denied, user/service-account, and error conditions without duplicating test logic.
+</Aside>
+
+#### Example implementations
+
+* [Config Manager (Go)](https://github.com/RedHatInsights/config-manager/blob/a937c5f283fb3acb2931cf2713173f220cd1bd11/internal/http/middleware/authorization/kessel_test.go) \- Uses a mock gRPC client with table-driven tests covering authorization, error handling, and both principal types.
+* [insights-rbac (Python)](https://github.com/project-kessel/insights-rbac/blob/master/tests/management/role/test_dual_write.py) \- Uses an in-memory tuple store (`InMemoryTuples`) as a SpiceDB substitute, with consistency assertions that verify both database state and relation tuples after each operation.
 
 ### Add configuration options for the Kessel client
 
