@@ -13,7 +13,7 @@ For permissions schema design, see the [Design Permissions guide](/docs/building
 
 ## The Compatibility Constraint
 
-**The level where RBAC binds a role must match the level where your application checks for that permission.** If they diverge, permissions silently fail.
+**The binding level must be compatible with the check level: workspace bindings inherit downward, not upward.** If they diverge, permissions silently fail.
 
 Example: RBAC generates a role binding at the Default Workspace, but your app checks for that permission at the Root Workspace. Because the Default Workspace does not inherit upward to the Root, the permission is never granted in v2 — even though it would be granted in v1. This violates the forward compatibility requirement.
 
