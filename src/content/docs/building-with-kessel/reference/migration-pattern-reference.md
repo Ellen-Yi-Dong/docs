@@ -88,7 +88,7 @@ Modeling a resource natively in Kessel requires connecting it to the workspace h
 
 For each authorization check, provide the specific resource identity to Kessel:
 
-- **Detail views / writes**: Use `Check` (reads) or `CheckForUpdate` (writes) against the specific resource
+- **Detail views / writes**: Use `Check` (reads), `CheckForUpdate` (writes or reads that expose credentials or other highly sensitive data) against the specific resource
 - **List views**: Use `StreamedListObjects` to pre-filter, or `Check` per-result to post-filter
 
 See [Protect an Endpoint](/docs/building-with-kessel/how-to/protect-endpoint/) for SDK-specific examples.
@@ -351,7 +351,7 @@ These persona-based roles are defined in the [`rhel.json` role file](https://git
 Kessel client SDKs use gRPC to communicate with Kessel services rather than REST. This design choice was made for several reasons:
 
 - **Performance**: gRPC uses HTTP/2 with binary serialization (Protocol Buffers), providing lower latency and smaller payloads compared to JSON-over-HTTP/1.1. Authorization checks are high-frequency, low-latency operations where this matters.
-- **Streaming**: The `StreamedListObjects` API returns workspace IDs incrementally via server-side streaming, allowing applications to begin processing results before the full set is available. REST does not natively support this pattern.
+- **Streaming**: The [`StreamedListObjects`](https://buf.build/project-kessel/inventory-api/docs/main:kessel.inventory.v1beta2#kessel.inventory.v1beta2.KesselInventoryService.StreamedListObjects) API returns workspace IDs incrementally via server-side streaming, allowing applications to begin processing results before the full set is available. REST does not natively support this pattern.
 - **Type safety**: Protocol Buffer definitions provide strongly-typed contracts shared between client and server, reducing integration errors.
 - **Consistency with SpiceDB**: Kessel's authorization backend (SpiceDB) natively exposes a gRPC API. Using gRPC end-to-end avoids the overhead and fidelity loss of a REST translation layer.
 
@@ -361,7 +361,9 @@ All Kessel SDKs ([Go](https://github.com/project-kessel/kessel-sdk-go), [Java](h
 
 ## Looking Up Built-In Workspaces
 
-Patterns 3 and 4 require looking up the Default or Root Workspace ID from RBAC. Use `GET /api/rbac/v2/workspaces/` with the `type` query parameter:
+Patterns 3 and 4 require looking up the Default or Root Workspace ID from RBAC. These `/api/rbac/v2` endpoints are RBAC management endpoints (not Inventory API endpoints). Workspace lookup requests must use the service's own OAuth token (not forward `x-rh-identity`) and include the `x-rh-rbac-org-id` header. See the [Root/Default workspace pattern](/docs/building-with-kessel/how-to/migrate-from-rbac-v1-to-v2/#rootdefault-workspace-pattern) section in the migration guide for details.
+
+Use `GET /api/rbac/v2/workspaces/` with the `type` query parameter:
 
 ```
 GET /api/rbac/v2/workspaces/?type=root
