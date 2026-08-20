@@ -331,18 +331,51 @@ Use table-driven / parameterized tests to cover combinations of Kessel enabled/d
 
 ### Add configuration options for the Kessel client
 
-The application should add the following configuration options for Kessel:
+The application needs to connect to two Kessel services: the **Inventory API** (for authorization checks) and the **Relations API** (for relation management).
+The following configuration options should be added:
 
-* `KESSEL_ENABLED`
-* `KESSEL_URL`
-* `KESSEL_AUTH_ENABLED`
-* `KESSEL_AUTH_CLIENT_ID`
-* `KESSEL_AUTH_CLIENT_SECRET`
-* `KESSEL_AUTH_OIDC_ISSUER`
-* `KESSEL_INSECURE`
+* `KESSEL_ENABLED` — feature flag to toggle Kessel authorization on/off
+* `RELATION_API_SERVER` — gRPC address for the Kessel Relations API (default: `localhost:9000`)
+* `INVENTORY_API_SERVER` — gRPC address for the Kessel Inventory API (default: `localhost:9000`)
+* Auth credentials per service (e.g. `RELATION_API_CLIENT_ID`, `RELATION_API_CLIENT_SECRET`, `INVENTORY_API_CLIENT_ID`, `INVENTORY_API_CLIENT_SECRET`)
+* Token URL per service (e.g. `RELATIONS_API_TOKEN_URL`, `INVENTORY_API_TOKEN_URL`)
 
-The ClowdApp template should also be updated accordingly to enable environment-specific configuration.
-See [Config Manager’s configuration](https://github.com/RedHatInsights/config-manager/pull/242/files) for an example.
+#### Clowder service discovery
+
+When running in a Clowder-managed environment, the Kessel service endpoints can be resolved automatically using Clowder’s `DependencyEndpoints` instead of manually configuring URLs.
+
+To enable this, declare `kessel-inventory` and `kessel-relations` as dependencies in your ClowdApp manifest:
+
+```yaml
+optionalDependencies:
+  - kessel-inventory
+  - kessel-relations
+```
+
+Then resolve the endpoints from Clowder at startup, falling back to the environment variables if the dependency is not available:
+
+```python
+from app_common_python import DependencyEndpoints
+
+if CLOWDER_ENABLED:
+    try:
+        hostname = DependencyEndpoints["kessel-inventory"]["api"].hostname
+        INVENTORY_API_SERVER = f"{hostname}:9000"
+    except KeyError:
+        pass  # fall back to env var / default
+
+    try:
+        hostname = DependencyEndpoints["kessel-relations"]["api"].hostname
+        RELATION_API_SERVER = f"{hostname}:9000"
+    except KeyError:
+        pass  # fall back to env var / default
+```
+
+<Aside type="tip" title="Use optionalDependencies">
+Declaring the Kessel services as `optionalDependencies` (rather than `dependencies`) allows your application to deploy in environments where Kessel is not yet available, while still benefiting from automatic service discovery where it is.
+</Aside>
+
+See [insights-rbac’s settings.py](https://github.com/project-kessel/insights-rbac/blob/master/rbac/rbac/settings.py) and [Config Manager’s configuration](https://github.com/RedHatInsights/config-manager/pull/242/files) for example implementations.
 
 ## Validate the changes in the ephemeral environment
 
