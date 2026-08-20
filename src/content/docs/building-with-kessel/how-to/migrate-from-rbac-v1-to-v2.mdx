@@ -375,6 +375,27 @@ if CLOWDER_ENABLED:
 Declaring the Kessel services as `optionalDependencies` (rather than `dependencies`) allows your application to deploy in environments where Kessel is not yet available, while still benefiting from automatic service discovery where it is.
 </Aside>
 
+<Aside type="caution" title="optionalDependencies and bonfire in ephemeral environments">
+When using `optionalDependencies`, bonfire may skip deploying Kessel services depending on its dependency resolution mode (`hybrid`, `all`, `none`).
+If your application needs Kessel in ephemeral environments, ensure your startup code handles the case where Kessel is not deployed — fall back to the env var default and disable Kessel features gracefully rather than crashing.
+
+```python
+KESSEL_ENABLED = ENVIRONMENT.bool("KESSEL_ENABLED", default=False)
+INVENTORY_API_SERVER = ENVIRONMENT.get_value("INVENTORY_API_SERVER", default="localhost:9000")
+
+if CLOWDER_ENABLED:
+    try:
+        hostname = DependencyEndpoints["kessel-inventory"]["api"].hostname
+        INVENTORY_API_SERVER = f"{hostname}:9000"
+    except KeyError:
+        logger.warning(
+            "Dependency endpoint for 'kessel-inventory' not found. "
+            f"Falling back to default: {INVENTORY_API_SERVER}"
+        )
+        # KESSEL_ENABLED should be False in environments without Kessel deployed
+```
+</Aside>
+
 See [insights-rbac’s settings.py](https://github.com/project-kessel/insights-rbac/blob/master/rbac/rbac/settings.py) and [Config Manager’s configuration](https://github.com/RedHatInsights/config-manager/pull/242/files) for example implementations.
 
 ## Validate the changes in the ephemeral environment
