@@ -6,8 +6,6 @@ sidebar:
 
 import { Aside, Steps } from '@astrojs/starlight/components';
 
-<Aside title="Under Construction">We are working on improving the documentation</Aside>
-
 This is a guide for the first phase of migration of existing Insights applications from RBACv1 to Kessel.
 In this initial phase, the goal is to start using Kessel for authorization enforcement while keeping parity with the current behaviors.
 Further “workspacification” (i.e. making assets other than hosts workspace-aware) is out of scope for the initial phase and this guide.
@@ -196,9 +194,7 @@ Furthermore, the `x-rh-rbac-org-id` needs to be specified so that RBAC can prope
 See [config-manager's RBAC client implementation](https://github.com/RedHatInsights/config-manager/blob/54348fd2a0c8034659a2fed5a082c511e8169f10/internal/http/middleware/authorization/rbac.go#L52-L61) for an example.
 </Aside>
 
-The default/root workspace for a given organization is guaranteed to never change and is therefore easily cacheable.
-However, in the future the need to look up the default/root workspace ID will be resolved transparently on the Kessel side.
-There is therefore no need to implement the caching code in the application code at this time.
+The default/root workspace ID for a given organization is immutable. Cache it aggressively to avoid the latency and reliability cost of an RBAC lookup on every request. See the [Caching](/docs/building-with-kessel/reference/migration-pattern-reference/#caching) section of the Migration Pattern Reference for details.
 
 With the workspace id resolved, the authorization check call can be made to Kessel.
 The actual method called depends on the nature of the operation.
