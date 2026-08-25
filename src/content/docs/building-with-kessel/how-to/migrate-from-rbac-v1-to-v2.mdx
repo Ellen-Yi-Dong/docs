@@ -6,8 +6,6 @@ sidebar:
 
 import { Aside, Steps } from '@astrojs/starlight/components';
 
-<Aside title="Under Construction">We are working on improving the documentation</Aside>
-
 This is a guide for the first phase of migration of existing Insights applications from RBACv1 to Kessel.
 In this initial phase, the goal is to start using Kessel for authorization enforcement while keeping parity with the current behaviors.
 Further “workspacification” (i.e. making assets other than hosts workspace-aware) is out of scope for the initial phase and this guide.
@@ -25,21 +23,21 @@ For example, an application may use a combination of:
 * permission protecting access to inventory group aware assets (e.g. host vulnerabilities)
 
 The following patterns are supported:
-* [Native](https://docs.google.com/document/d/1XnINsHuYeHEi22q_1cS0gUalX-eXl3V19gGf0Wr8NsE/edit?tab=t.0#heading=h.fxctn4xy427v)
-* [Native, workspace-level list](https://docs.google.com/document/d/1XnINsHuYeHEi22q_1cS0gUalX-eXl3V19gGf0Wr8NsE/edit?tab=t.0#heading=h.17ytnrwi9six)
-* [Default workspace](https://docs.google.com/document/d/1XnINsHuYeHEi22q_1cS0gUalX-eXl3V19gGf0Wr8NsE/edit?tab=t.0#heading=h.llalb2knp7t)
-* [Root workspace](https://docs.google.com/document/d/1XnINsHuYeHEi22q_1cS0gUalX-eXl3V19gGf0Wr8NsE/edit?tab=t.0#heading=h.z8kd70uc9ad5)
-* [Organization-level](https://docs.google.com/document/d/1XnINsHuYeHEi22q_1cS0gUalX-eXl3V19gGf0Wr8NsE/edit?tab=t.0#heading=h.622lk0gd5b8p)
+* [Native](/docs/building-with-kessel/reference/migration-pattern-reference/#pattern-1-native-workspace-aware-low-cardinality)
+* [Native, workspace-level list](/docs/building-with-kessel/reference/migration-pattern-reference/#pattern-2-native-workspace-level-list-workspace-aware-high-cardinality)
+* [Default workspace](/docs/building-with-kessel/reference/migration-pattern-reference/#pattern-3-default-workspace-non-workspace-aware-assets)
+* [Root workspace](/docs/building-with-kessel/reference/migration-pattern-reference/#pattern-4-root-workspace-org-wide-asset-centric-settings)
+* [Organization-level](/docs/building-with-kessel/reference/migration-pattern-reference/#pattern-5-organization-level-non-asset-centric-settings)
 
 For the initial migration of RBACv1 applications to Kessel, the following simplified decision tree can be used to identify the appropriate pattern:
-* Is the asset related to a host (vulnerability, advisory, compliance report, etc.) and the service already workspace-aware? Use [Native, workspace-level list](https://docs.google.com/document/d/1XnINsHuYeHEi22q_1cS0gUalX-eXl3V19gGf0Wr8NsE/edit?tab=t.0#heading=h.17ytnrwi9six)
-* Can the resource be conceptualized as an "asset" (customer manages CRUD; we can imagine it as being placed in a Workspace)? --> Use [Default workspace](https://docs.google.com/document/d/1XnINsHuYeHEi22q_1cS0gUalX-eXl3V19gGf0Wr8NsE/edit?tab=t.0#heading=h.llalb2knp7t)
-* Is the resource "the organization" as a whole (e.g. managing an organization-wide setting) and the operation is "asset-centric" (we could imagine it being Workspace level in the future)? --> Use [Root workspace](https://docs.google.com/document/d/1XnINsHuYeHEi22q_1cS0gUalX-eXl3V19gGf0Wr8NsE/edit?tab=t.0#heading=h.z8kd70uc9ad5)
-* Is the resource "the organization" as a whole (e.g. managing an organization-wide setting) and the operation is not "asset-centric" (would never belong at a Workspace level)? --> Use [Organization-level](https://docs.google.com/document/d/1XnINsHuYeHEi22q_1cS0gUalX-eXl3V19gGf0Wr8NsE/edit?tab=t.0#heading=h.622lk0gd5b8p)
+* Is the resource already workspace-aware (e.g. hosts, workspaces)?
+  * Do queries return fewer than ~10k results, or are more than ~80% of results accessible to the requesting user? --> Use [Native](/docs/building-with-kessel/reference/migration-pattern-reference/#pattern-1-native-workspace-aware-low-cardinality)
+  * Do queries return more than ~10k results and fewer than ~80% of results are accessible? --> Use [Native, workspace-level list](/docs/building-with-kessel/reference/migration-pattern-reference/#pattern-2-native-workspace-level-list-workspace-aware-high-cardinality)
+* Can the resource be conceptualized as an "asset" (customer manages CRUD; we can imagine it as being placed in a Workspace) but is not yet workspace-aware? --> Use [Default workspace](/docs/building-with-kessel/reference/migration-pattern-reference/#pattern-3-default-workspace-non-workspace-aware-assets)
+* Is the resource "the organization" as a whole (e.g. managing an organization-wide setting) and the operation is "asset-centric" (we could imagine it being Workspace level in the future)? --> Use [Root workspace](/docs/building-with-kessel/reference/migration-pattern-reference/#pattern-4-root-workspace-org-wide-asset-centric-settings)
+* Is the resource "the organization" as a whole (e.g. managing an organization-wide setting) and the operation is not "asset-centric" (would never belong at a Workspace level)? --> Use [Organization-level](/docs/building-with-kessel/reference/migration-pattern-reference/#pattern-5-organization-level-non-asset-centric-settings)
 
-See the Pattern Summary section in [KSL-016: Migrating host and organization level permissions](https://docs.google.com/document/d/1XnINsHuYeHEi22q_1cS0gUalX-eXl3V19gGf0Wr8NsE/edit?tab=t.0#heading=h.dtb0qssiad9s) for more information about the patterns.
-
-The patterns identified for each application are tracked in [Kessel Integrations](https://docs.google.com/spreadsheets/d/1V3mH2pDgXOcxeyxt0fH8RnzzmDsKRDxKzDxxmuaP1mk/edit?gid=0#gid=0)
+See the [Migration Pattern Reference](/docs/building-with-kessel/reference/migration-pattern-reference/) for detailed information about each pattern, including request translations and implementation guidance.
 
 ## Model the permissions
 
@@ -106,7 +104,7 @@ The `rbac.add_contingent_permission()` extension simplifies this process.
 which is equivalent to (metalanguage used for illustration purposes):
 
 ```
-patch_system_view_assigned = patch_system_read OR patch_system_all OR patch_system_all_read OR patch_system_all_all OR all_all_all
+patch_system_view_assigned = patch_system_read OR patch_system_all OR patch_all_read OR patch_all_all OR all_all_all
 patch_system_view = inventory_host_view AND patch_system_view_assigned
 ```
 
@@ -145,7 +143,7 @@ Note that the way these permissions are associated with a role remains the same,
 
 In some cases a completely new permission may be defined in the process of onboarding to Kessel.
 In that case, consider defining this permission in RHEL persona-based roles (e.g. RHEL Viewer) in addition to application-specific roles (e.g. Advisor Viewer).
-See [RHCLOUD-35891](https://issues.redhat.com/browse/RHCLOUD-35891) for additional details.
+See the [Role Definitions](/docs/building-with-kessel/reference/migration-pattern-reference/#role-definitions) section of the Migration Pattern Reference for additional details.
 
 
 ## Implement the changes in the application code
@@ -168,7 +166,7 @@ Kessel client libraries are available for these languages:
 * [Ruby](https://github.com/project-kessel/kessel-sdk-ruby)
 
 <Aside type="note" title="Why gRPC and not REST?">
-In case you are wondering why the Kessel clients use gRPC to communicate with Kessel services instead of REST, take a look at [AUTHZ-005: gRPC vs. REST for platform RBAC Relation API calls](https://docs.google.com/document/d/1KkVii7dU-p86rkj5HA8RXcI4Y3WcMgcoaIFpcigWP3I/edit?tab=t.0)
+Kessel clients use gRPC rather than REST for performance (HTTP/2 with binary serialization), streaming support (`StreamedListObjects`), type safety via Protocol Buffers, and consistency with the SpiceDB backend. See the [Why gRPC](/docs/building-with-kessel/reference/migration-pattern-reference/#why-grpc) section of the Migration Pattern Reference for details.
 </Aside>
 
 ### Implement the authorization check in the application code
@@ -178,13 +176,13 @@ The actual implementation differs based on the selected pattern(s).
 
 #### Root/Default workspace pattern
 
-The implementation of [root workspace pattern](https://docs.google.com/document/d/1XnINsHuYeHEi22q_1cS0gUalX-eXl3V19gGf0Wr8NsE/edit?tab=t.0#heading=h.z8kd70uc9ad5) and [default workspace pattern](https://docs.google.com/document/d/1XnINsHuYeHEi22q_1cS0gUalX-eXl3V19gGf0Wr8NsE/edit?tab=t.0#heading=h.llalb2knp7t) starts with a lookup of the default/root workspace id for the given organization.
+The implementation of [root workspace pattern](/docs/building-with-kessel/reference/migration-pattern-reference/#pattern-4-root-workspace-org-wide-asset-centric-settings) and [default workspace pattern](/docs/building-with-kessel/reference/migration-pattern-reference/#pattern-3-default-workspace-non-workspace-aware-assets) starts with a lookup of the default/root workspace id for the given organization.
 
 The workspace ID can be obtained from the RBAC service via a REST call:
 
 ```
-GET /api/rbac/v2/workspaces/?type=root
-GET /api/rbac/v2/workspaces/?type=default
+GET /api/rbac/v2/workspaces/?type=root&with_ancestry=true
+GET /api/rbac/v2/workspaces/?type=default&with_ancestry=true
 ```
 
 <Aside type="note" title="Resolving workspace ids from RBAC">
@@ -196,9 +194,7 @@ Furthermore, the `x-rh-rbac-org-id` needs to be specified so that RBAC can prope
 See [config-manager's RBAC client implementation](https://github.com/RedHatInsights/config-manager/blob/54348fd2a0c8034659a2fed5a082c511e8169f10/internal/http/middleware/authorization/rbac.go#L52-L61) for an example.
 </Aside>
 
-The default/root workspace for a given organization is guaranteed to never change and is therefore easily cacheable.
-However, in the future the need to look up the default/root workspace ID will be resolved transparently on the Kessel side.
-There is therefore no need to implement the caching code in the application code at this time.
+The default/root workspace ID for a given organization is immutable. Cache it aggressively to avoid the latency and reliability cost of an RBAC lookup on every request. See the [Caching](/docs/building-with-kessel/reference/migration-pattern-reference/#caching) section of the Migration Pattern Reference for details.
 
 With the workspace id resolved, the authorization check call can be made to Kessel.
 The actual method called depends on the nature of the operation.
@@ -245,13 +241,12 @@ Note that the principalID will differ based on the type of the principal:
 Default workspace pattern implementations and PoCs:
 * [Config Manager](https://github.com/RedHatInsights/config-manager/pull/242)
 * [Resource Optimization Service](https://github.com/josejulio/ros-backend/pull/1/files)
-* [Advisor](https://gitlab.cee.redhat.com/ahenning/advisor-backend/-/blob/8fadd8565f4445f9cfa2392708bc0b3accfaf7f0/api/advisor/api/permissions.py#L325)
 
-See [Default workspace](https://docs.google.com/document/d/1XnINsHuYeHEi22q_1cS0gUalX-eXl3V19gGf0Wr8NsE/edit?tab=t.0#heading=h.llalb2knp7t) for additional information.
+See the [Default Workspace pattern](/docs/building-with-kessel/reference/migration-pattern-reference/#pattern-3-default-workspace-non-workspace-aware-assets) reference for additional information.
 
 #### Native, workspace-level list
 
-The [Native, workspace-level list pattern](https://docs.google.com/document/d/1XnINsHuYeHEi22q_1cS0gUalX-eXl3V19gGf0Wr8NsE/edit?tab=t.0#heading=h.17ytnrwi9six) is typically implemented by resolving the ids of all the workspaces for which the given principal possesses the given permission and then using these workspace ids to filter the assets in application database query.
+The [Native, workspace-level list pattern](/docs/building-with-kessel/reference/migration-pattern-reference/#pattern-2-native-workspace-level-list-workspace-aware-high-cardinality) is typically implemented by resolving the ids of all the workspaces for which the given principal possesses the given permission and then using these workspace ids to filter the assets in application database query.
 
 <Aside type="note" title="Performance consideration">
     The number of workspace IDs returned can be large, which may impact query performance if the application database is not optimized with appropriate indexes.
@@ -288,245 +283,122 @@ Note that the principalID will differ based on the type of the principal:
 Native, workspace-level list pattern implementations and PoCs:
 * [Digital Roadmap](https://github.com/RedHatInsights/digital-roadmap-backend/pull/182)
 * [Resource Optimization Service](https://github.com/josejulio/ros-backend/pull/1/files)
-* [Malware](https://gitlab.cee.redhat.com/ahenning/malware-detection-backend/-/commit/69d9965de4236566345eb296622c08ce782019a8)
-* [Advisor](https://gitlab.cee.redhat.com/ahenning/advisor-backend/-/blob/8fadd8565f4445f9cfa2392708bc0b3accfaf7f0/api/advisor/api/permissions.py#L325)
 
-See [Native, workspace-level list](https://docs.google.com/document/d/1XnINsHuYeHEi22q_1cS0gUalX-eXl3V19gGf0Wr8NsE/edit?tab=t.0#heading=h.17ytnrwi9six) for additional information.
+See the [Native workspace-level list pattern](/docs/building-with-kessel/reference/migration-pattern-reference/#pattern-2-native-workspace-level-list-workspace-aware-high-cardinality) reference for additional information.
 
 ### Adding tests
 
-TBD
+Tests should verify that your application correctly constructs and sends authorization requests to Kessel, and properly handles the responses.
 
-[Example of a testcase for Kessel integration](https://github.com/RedHatInsights/config-manager/blob/a937c5f283fb3acb2931cf2713173f220cd1bd11/internal/http/middleware/authorization/kessel_test.go)
+#### What to test
+
+* **Authorization middleware**: Verify that your middleware sends the correct `Check` or `CheckForUpdate` request to Kessel for each protected endpoint, including the correct resource type, resource ID, relation (permission), and subject.
+* **Allowed and denied scenarios**: Test that a `ALLOWED_TRUE` response grants access and a `ALLOWED_FALSE` response returns 403.
+* **Error handling**: Test that Kessel errors (e.g. connection failures, timeouts) result in an appropriate error response (typically 500), not a silent allow.
+* **Principal types**: Test with both user principals (`identity.User.UserId`) and service account principals (`identity.ServiceAccount.UserId`).
+* **Workspace resolution**: If using the Default or Root Workspace pattern, test that the workspace ID is resolved correctly and that resolution failures are handled.
+* **Feature flag fallback**: Test that `KESSEL_ENABLED=false` cleanly falls back to existing v1 authorization with no side effects, and that toggling it on produces the same authorization outcomes as v1 for equivalent permissions.
+* **Parity between v1 and v2**: During the migration period, verify that enabling Kessel does not change authorization outcomes compared to the existing v1 path. The [insights-rbac parity checker](https://github.com/project-kessel/insights-rbac/blob/master/tests/management/parity_check/test_checker.py) demonstrates this pattern by asserting that v1 operations and v2 relation tuples remain consistent after every mutation.
+* **StreamedListObjects** (workspace-level list pattern): Test handling of the streaming response, including partial results, empty streams when the user has no access, and correct use of the returned workspace IDs as database query filters.
+* **Contingent permissions** (host-centric assets): If using `@rbac.add_contingent_permission()`, test that a user needs *both* the inventory host permission and the app-specific permission. A user holding only one should be denied.
+
+#### How to test
+
+Mock the Kessel gRPC client in your unit tests rather than connecting to a live Kessel instance.
+Create a mock implementation of the Kessel Inventory Service client that:
+
+* Records the requests it receives for assertion
+* Returns configurable responses (`ALLOWED_TRUE`, `ALLOWED_FALSE`) or errors
+
+Then assert that:
+
+* The resource reference in the request has the expected type, ID, and reporter
+* The relation matches the permission being checked
+* The subject reference contains the correct principal ID and type
+
+<Aside type="tip" title="Table-driven tests">
+Use table-driven / parameterized tests to cover combinations of Kessel enabled/disabled, allowed/denied, user/service-account, and error conditions without duplicating test logic.
+</Aside>
+
+#### Example implementations
+
+* [Config Manager (Go)](https://github.com/RedHatInsights/config-manager/blob/a937c5f283fb3acb2931cf2713173f220cd1bd11/internal/http/middleware/authorization/kessel_test.go) \- Uses a mock gRPC client with table-driven tests covering authorization, error handling, and both principal types.
+* [insights-rbac (Python)](https://github.com/project-kessel/insights-rbac/blob/master/tests/management/role/test_dual_write.py) \- Uses an in-memory tuple store (`InMemoryTuples`) as a SpiceDB substitute, with consistency assertions that verify both database state and relation tuples after each operation.
 
 ### Add configuration options for the Kessel client
 
-The application should add the following configuration options for Kessel:
+The application needs to connect to two Kessel services: the **Inventory API** (for authorization checks) and the **Relations API** (for relation management).
+The following configuration options should be added:
 
-* `KESSEL_ENABLED`
-* `KESSEL_URL`
-* `KESSEL_AUTH_ENABLED`
-* `KESSEL_AUTH_CLIENT_ID`
-* `KESSEL_AUTH_CLIENT_SECRET`
-* `KESSEL_AUTH_OIDC_ISSUER`
-* `KESSEL_INSECURE`
+* `KESSEL_ENABLED` — feature flag to toggle Kessel authorization on/off
+* `RELATION_API_SERVER` — gRPC address for the Kessel Relations API (default: `localhost:9000`)
+* `INVENTORY_API_SERVER` — gRPC address for the Kessel Inventory API (default: `localhost:9000`)
+* Auth credentials per service (e.g. `RELATION_API_CLIENT_ID`, `RELATION_API_CLIENT_SECRET`, `INVENTORY_API_CLIENT_ID`, `INVENTORY_API_CLIENT_SECRET`)
+* Token URL per service (e.g. `RELATIONS_API_TOKEN_URL`, `INVENTORY_API_TOKEN_URL`)
 
-The ClowdApp template should also be updated accordingly to enable environment-specific configuration.
-See [Config Manager’s configuration](https://github.com/RedHatInsights/config-manager/pull/242/files) for an example.
+#### Clowder service discovery
+
+When running in a Clowder-managed environment, the Kessel service endpoints can be resolved automatically using Clowder’s `DependencyEndpoints` instead of manually configuring URLs.
+
+To enable this, declare `kessel-inventory` and `kessel-relations` as dependencies in your ClowdApp manifest:
+
+```yaml
+optionalDependencies:
+  - kessel-inventory
+  - kessel-relations
+```
+
+Then resolve the endpoints from Clowder at startup, falling back to the environment variables if the dependency is not available:
+
+```python
+from app_common_python import DependencyEndpoints
+
+if CLOWDER_ENABLED:
+    try:
+        hostname = DependencyEndpoints["kessel-inventory"]["api"].hostname
+        INVENTORY_API_SERVER = f"{hostname}:9000"
+    except KeyError:
+        pass  # fall back to env var / default
+
+    try:
+        hostname = DependencyEndpoints["kessel-relations"]["api"].hostname
+        RELATION_API_SERVER = f"{hostname}:9000"
+    except KeyError:
+        pass  # fall back to env var / default
+```
+
+<Aside type="tip" title="Use optionalDependencies">
+Declaring the Kessel services as `optionalDependencies` (rather than `dependencies`) allows your application to deploy in environments where Kessel is not yet available, while still benefiting from automatic service discovery where it is.
+</Aside>
+
+<Aside type="caution" title="optionalDependencies and bonfire in ephemeral environments">
+When using `optionalDependencies`, bonfire may skip deploying Kessel services depending on its dependency resolution mode (`hybrid`, `all`, `none`).
+If your application needs Kessel in ephemeral environments, ensure your startup code handles the case where Kessel is not deployed — fall back to the env var default and disable Kessel features gracefully rather than crashing.
+
+```python
+KESSEL_ENABLED = ENVIRONMENT.bool("KESSEL_ENABLED", default=False)
+INVENTORY_API_SERVER = ENVIRONMENT.get_value("INVENTORY_API_SERVER", default="localhost:9000")
+
+if CLOWDER_ENABLED:
+    try:
+        hostname = DependencyEndpoints["kessel-inventory"]["api"].hostname
+        INVENTORY_API_SERVER = f"{hostname}:9000"
+    except KeyError:
+        logger.warning(
+            "Dependency endpoint for 'kessel-inventory' not found. "
+            f"Falling back to default: {INVENTORY_API_SERVER}"
+        )
+        # KESSEL_ENABLED should be False in environments without Kessel deployed
+```
+</Aside>
+
+See [insights-rbac’s settings.py](https://github.com/project-kessel/insights-rbac/blob/master/rbac/rbac/settings.py) and [Config Manager’s configuration](https://github.com/RedHatInsights/config-manager/pull/242/files) for example implementations.
 
 ## Validate the changes in the ephemeral environment
 
-The following section describes how to deploy Kessel and related services in an ephemeral environment and use them to validate the changes made to an integrating application.
-
-### Deploying Kessel and related services
-
-[insights-service-deployer](https://github.com/project-kessel/insights-service-deployer/tree/main) should be used to deploy Kessel and other related services in an ephemeral environment.
-Follow the instructions in the [README](https://github.com/project-kessel/insights-service-deployer/blob/main/README.md) to reserve a namespace and set up the environment variables and then run the following command to deploy Kessel and related services and seed them with sample data:
-
-	```shell
-	./deploy.sh deploy_with_hbi_demo
-	```
-
-### Enabling authentication
-
-Applications using Kessel for access control need to authenticate with Kessel and RBAC in stage/prod environments.
-The following sections describe two approaches to enable authentication with Kessel in the ephemeral environment.
-
-#### Option 1: Using local Keycloak (Recommended for testing)
-
-You can create a service account in the local Keycloak instance running in your ephemeral environment. This approach is simpler and doesn't require access to Stage SSO.
-
-To create and retrieve the service account credentials for configuring your application, run the following commands:
-
-1. Get the Keycloak admin credentials:
-
-	```shell
-	ENV_NAMESPACE="env-$(oc project -q)"
-	ADMIN_USER=$(oc get secret "$ENV_NAMESPACE-keycloak" -o jsonpath='{.data.username}' | base64 -d)
-	ADMIN_PASS=$(oc get secret "$ENV_NAMESPACE-keycloak" -o jsonpath='{.data.password}' | base64 -d)
-	KEYCLOAK_URL=$(oc get route -l app=${ENV_NAMESPACE} -o json | jq '.items[] | select(.metadata.name | contains("auth")) | select(.spec.port.targetPort == "keycloak").spec.host' -r)
-	```
-
-1. Get an admin access token:
-
-	```shell
-	TOKEN=$(curl -s -X POST "https://${KEYCLOAK_URL}/auth/realms/master/protocol/openid-connect/token" \
-	    -H "Content-Type: application/x-www-form-urlencoded" \
-	    -d "username=${ADMIN_USER}" \
-	    -d "password=${ADMIN_PASS}" \
-	    -d "grant_type=password" \
-	    -d "client_id=admin-cli" | jq -r '.access_token')
-	```
-
-	:::note
-	The admin token expires quickly (typically within a few minutes). If you're executing these commands manually and encounter authentication errors, re-run this command to refresh the token.
-	:::
-
-1. Create the service account client in Keycloak:
-
-	```shell
-	CLIENT_ID="service-account-console"
-	curl -X POST "https://${KEYCLOAK_URL}/auth/admin/realms/redhat-external/clients" \
-	    -H "Authorization: Bearer ${TOKEN}" \
-	    -H "Content-Type: application/json" \
-	    -d '{
-	      "clientId": "'${CLIENT_ID}'",
-	      "enabled": true,
-	      "serviceAccountsEnabled": true,
-	      "publicClient": false,
-	      "standardFlowEnabled": false,
-	      "directAccessGrantsEnabled": false
-	    }'
-	```
-
-1. Retrieve the service account client secret:
-
-	```shell
-	INTERNAL_CLIENT_ID=$(curl -s "https://${KEYCLOAK_URL}/auth/admin/realms/redhat-external/clients" \
-	  -H "Authorization: Bearer ${TOKEN}" | jq -r '.[] | select(.clientId=="'${CLIENT_ID}'") | .id')
-	CLIENT_SECRET=$(curl -s "https://${KEYCLOAK_URL}/auth/admin/realms/redhat-external/clients/${INTERNAL_CLIENT_ID}/client-secret" \
-	  -H "Authorization: Bearer ${TOKEN}" | jq -r '.value')
-	```
-
-1. Get the OIDC issuer URL:
-
-	```shell
-	ISSUER_URL=$(curl -s "https://${KEYCLOAK_URL}/auth/realms/redhat-external/.well-known/openid-configuration" | jq -r '.issuer')
-	```
-
-1. Display the credentials:
-
-	```shell
-	echo "Client ID: ${CLIENT_ID}"
-	echo "Client Secret: ${CLIENT_SECRET}"
-	echo "Issuer URL: ${ISSUER_URL}"
-	```
-
-1. Get the subject (`sub` claim) for the service account:
-
-	```shell
-	SUB=$(curl -s ${ISSUER_URL}/protocol/openid-connect/token -d grant_type=client_credentials -d client_id=${CLIENT_ID} -d client_secret=${CLIENT_SECRET} | jq -r '.access_token' | awk -F. '{print $2}' | base64 --decode 2>/dev/null | jq -r '.sub')
-	```
-
-1. Configure RBAC to grant unlimited access to the service account:
-
-	```shell
-	oc create secret generic system-users --dry-run=client -o yaml --from-literal="system-users.json={
-	  \"$SUB\": {
-	    \"admin\": true,
-	    \"is_service_account\": true,
-	    \"allow_any_org\": true
-	  }
-	}" | oc apply -f -
-	```
-
-1. Enable token validation in RBAC:
-
-	```shell
-	oc get clowdapp rbac -o json | \
-		jq '(.spec.deployments[] | select(.name=="service") | .podSpec.env[] | select(.name=="IT_BYPASS_TOKEN_VALIDATION") | .value) = "False"' | \
-		oc apply -f -
-	```
-
-1. Update the Kessel Inventory service configuration to enable authentication.
-   Run `oc edit cm inventory-api-config` to edit the kessel-inventory configuration ConfigMap and in the editor update the authn section like this:
-
-	```yaml
-	    authn:
-	      oidc:
-	        authn-server-url: ${ISSUER_URL}
-	        client-id: ${CLIENT_ID}
-	        skip-client-id-check: true
-	        insecure-client: false
-	```
-
-	Note: Replace `${ISSUER_URL}` and `${CLIENT_ID}` with the actual values.
-
-1. Restart the RBAC and Kessel services to apply the changes:
-
-	```shell
-	oc delete pod -l pod=rbac-service
-	oc delete pod -l pod=kessel-inventory-api
-	```
-
-Use these credentials to configure your application to authenticate with Kessel and RBAC.
-
-#### Option 2: Using Stage SSO credentials
-
-Alternatively, you can use service account credentials from Stage SSO. This approach is useful if you want to test with real Stage SSO authentication:
-
-1. Navigate to [Identity & Access Management in Stage](https://console.stage.redhat.com/iam/service-accounts) to create a new service account and obtain the client ID and client secret.
-   This is a service account that our application will use to authenticate with Kessel and RBAC.
-
-1. Start a new shell and store the client ID and client secret as environment variables:
-
-	```shell
-	CLIENT_ID=<client_id>
-	CLIENT_SECRET=<client_secret>
-	```
-
-1. Next, we need to determine the subject (`sub` claim) for the service account:
-
-	```shell
-	SUB=$(curl -s https://sso.stage.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token -d grant_type=client_credentials -d client_id=${CLIENT_ID} -d client_secret=${CLIENT_SECRET} | jq -r '.access_token' | awk -F. '{print $2}' | base64 --decode 2>/dev/null | jq -r '.sub')
-	```
-
-1. Now, we'll update the configuration of the RBAC service to enable authentication.
-   With the RBAC service running in the ephemeral environment (see steps above), run the following command to grant unlimited access to the service account created in the first step:
-
-	```shell
-	oc create secret generic system-users --dry-run=client -o yaml --from-literal="system-users.json={
-	  \"$SUB\": {
-	    \"admin\": true,
-	    \"is_service_account\": true,
-	    \"allow_any_org\": true
-	  }
-	}" | oc apply -f -
-	```
-
-1. Next, reconfigure the RBAC service to validate access tokens using Stage SSO:
-
-	```shell
-	oc get clowdapp rbac -o json | \
-		jq '(.spec.deployments[] | select(.name=="service") | .podSpec.env[] | select(.name=="IT_BYPASS_TOKEN_VALIDATION") | .value) = "False" |
-		(.spec.deployments[] | select(.name=="service") | .podSpec.env[] | select(.name=="IT_SERVICE_HOST") | .value) = "sso.stage.redhat.com"' | \
-		oc apply -f -
-	```
-
-1. Furthermore, we also need to update the Kessel Inventory service configuration to enable authentication.
-   Run `oc edit cm inventory-api-config` to edit the kessel-inventory configuration ConfigMap and in the editor update the authn section like this:
-
-	```yaml
-	    authn:
-	      oidc:
-	        authn-server-url: https://sso.stage.redhat.com/auth/realms/redhat-external
-	        client-id: foo
-	        skip-client-id-check: true
-	        insecure-client: false
-	```
-
-
-1. Finally, restart the Kessel service:
-
-	```shell
-	oc delete pod -l pod=kessel-inventory-api
-	```
-
-### Forwarding ports for local development
-
-With Kessel running in the ephemeral environment, you can forward the ports to enable the application running locally to connect to RBAC and Kessel.
-
-1. Use `oc port-forward svc/rbac-service 8000:8000` to forward port 8000 to the RBAC service
-1. Use `oc port-forward svc/kessel-inventory-api 9091:9000` to forward port 9091 to the Kessel Inventory service
-
-With port forwarding running, you can now configure your application to use the local Kessel and RBAC ports and start it.
-
-For example, for Config Manager, the command to configure and run the application looks like this:
-
-```shell
-go run main.go --log-level trace --kessel-enabled=true --kessel-url=localhost:9091 --kessel-auth-enabled=true --kessel-auth-client-id=${CLIENT_ID} --kessel-auth-client-secret=${CLIENT_SECRET} --kessel-auth-oidc-issuer=https://sso.stage.redhat.com/auth/realms/redhat-external --rbac-url=http://localhost:8000 http-api
-```
-
+<Aside type="tip" title="Deploying Kessel in an ephemeral environment">
+For instructions on deploying Kessel and related services in an ephemeral environment, including authentication setup, port forwarding, and local development configuration, see the internal documentation on InScope (requires VPN).
+</Aside>
 
 ## Deploy the changes
 
