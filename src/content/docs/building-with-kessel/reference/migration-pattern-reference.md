@@ -366,8 +366,8 @@ Patterns 3 and 4 require looking up the Default or Root Workspace ID from RBAC. 
 Use `GET /api/rbac/v2/workspaces/` with the `type` query parameter:
 
 ```
-GET /api/rbac/v2/workspaces/?type=root
-GET /api/rbac/v2/workspaces/?type=default
+GET /api/rbac/v2/workspaces/?type=root&with_ancestry=true
+GET /api/rbac/v2/workspaces/?type=default&with_ancestry=true
 ```
 
 Response (`Workspaces.WorkspaceListResponse`):
@@ -376,10 +376,10 @@ Response (`Workspaces.WorkspaceListResponse`):
 {
   "meta": { "count": 1, "limit": 10, "offset": 0 },
   "links": {
-    "first": "/api/rbac/v2/workspaces/?type=root&limit=10&offset=0",
+    "first": "/api/rbac/v2/workspaces/?type=root&with_ancestry=true&limit=10&offset=0",
     "next": null,
     "previous": null,
-    "last": "/api/rbac/v2/workspaces/?type=root&limit=10&offset=0"
+    "last": "/api/rbac/v2/workspaces/?type=root&with_ancestry=true&limit=10&offset=0"
   },
   "data": [
     {

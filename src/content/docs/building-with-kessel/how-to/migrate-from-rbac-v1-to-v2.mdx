@@ -181,8 +181,8 @@ The implementation of [root workspace pattern](/docs/building-with-kessel/refere
 The workspace ID can be obtained from the RBAC service via a REST call:
 
 ```
-GET /api/rbac/v2/workspaces/?type=root
-GET /api/rbac/v2/workspaces/?type=default
+GET /api/rbac/v2/workspaces/?type=root&with_ancestry=true
+GET /api/rbac/v2/workspaces/?type=default&with_ancestry=true
 ```
 
 <Aside type="note" title="Resolving workspace ids from RBAC">
