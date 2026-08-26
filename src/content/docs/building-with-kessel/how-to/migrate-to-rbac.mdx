@@ -104,7 +104,7 @@ If your application has no authorization model — or uses simple org-wide check
 The Default workspace represents "all resources in this organization that aren't explicitly placed elsewhere." By checking permissions against the Default workspace, your application gets org-wide authorization that matches the current behavior:
 
 <Steps>
-1. Look up the Default workspace ID for the tenant using `GET /api/rbac/v2/workspaces/?type=default`. Cache this value — it never changes for a given tenant.
+1. Look up the Default workspace ID for the tenant using `GET /api/rbac/v2/workspaces/?type=default&with_ancestry=true`. The `with_ancestry=true` parameter bypasses permission validation on the request. Cache this value — it never changes for a given tenant.
 2. For each protected endpoint, call `Check` or `CheckForUpdate` with the Default workspace as the resource.
 3. Define your permissions in a `.ksl` file and submit them to the [rbac-config](https://github.com/project-kessel/rbac-config) repository.
 4. Assign your permissions to appropriate roles (application-specific and RHEL persona-based roles).
@@ -191,6 +191,42 @@ Once shadow mode shows consistent results across a representative set of tenants
   If your application uses the insights-rbac dual-write pipeline, be aware that tenant activation for v2 writes is **permanent** — once a tenant is switched to v2, v1 writes are blocked and cannot be re-enabled. Plan your rollout accordingly and ensure Kessel authorization is validated before activating v2 writes for a tenant.
 </Aside>
 
+## Which permission extension to use
+
+KSL provides two extensions for registering permissions. Which one you use depends on whether your application has existing RBAC v1 permissions that need backward-compatible wildcard support.
+
+**`@rbac.add_unified_permission`** — Use this for **new permissions** or applications that have **no existing RBAC v1 permissions**. This is the simpler option and the recommended default for applications adopting Kessel RBAC for the first time.
+
+```ksl
+version 0.2
+namespace myservice
+
+import rbac
+
+@rbac.add_unified_permission(app:'myservice', resource:'integration', verb:'view');
+@rbac.add_unified_permission(app:'myservice', resource:'integration', verb:'edit');
+```
+
+This creates permission names like `myservice_integration_view` and `myservice_integration_edit` that can be used in `Check` calls.
+
+**`@rbac.add_v1_based_permission`** — Use this when your application has **existing RBAC v1 permissions** with wildcard usage (e.g., `myapp:*:read`). This extension generates the permission plus all wildcard permutations (`_all_` variants) so that existing v1 wildcard grants continue to work after migration.
+
+```ksl
+version 0.1
+namespace myservice
+
+import rbac
+
+@rbac.add_v1_based_permission(app:'myservice', resource:'integration', verb:'read', v2_perm:'myservice_integration_view');
+@rbac.add_v1_based_permission(app:'myservice', resource:'integration', verb:'write', v2_perm:'myservice_integration_edit');
+```
+
+<Aside type="note">
+  `@rbac.add_v1_based_permission` requires an explicit `v2_perm` parameter for the compound permission name because it also generates the v1-compatible wildcard variants. The naming convention maps `read` to `view` and `write` to `edit` to avoid collisions with v1 permission names. See the [v1 to v2 migration guide](/docs/building-with-kessel/how-to/migrate-from-rbac-v1-to-v2/#model-the-permissions) for full details on wildcard handling.
+</Aside>
+
+For a working example of `@rbac.add_unified_permission` in context, see [Protect an Endpoint](/docs/building-with-kessel/how-to/protect-endpoint/#define-your-service-permissions).
+
 ## Migration checklist
 
 Use this checklist to track your migration progress:
@@ -204,7 +240,7 @@ Use this checklist to track your migration progress:
 
 ### Permission schema
 
-- [ ] Write `.ksl` permission definitions using `@rbac.add_v1_based_permission()` for permissions that need wildcard support
+- [ ] Write `.ksl` permission definitions — choose the right extension for your situation (see [which extension to use](#which-permission-extension-to-use) below)
 - [ ] Use `@rbac.add_contingent_permission()` for host-centric permissions that require both app-specific and inventory permissions
 - [ ] Submit `.ksl` files to the [rbac-config](https://github.com/project-kessel/rbac-config) repository (stage first, then prod)
 - [ ] Assign permissions to appropriate roles — both application-specific roles and [RHEL persona-based roles](/docs/building-with-kessel/reference/migration-pattern-reference/#role-definitions) (Viewer, Operator, Administrator)
@@ -219,6 +255,8 @@ Use this checklist to track your migration progress:
 - [ ] Handle both user principals (`identity.User.UserId`) and service account principals (`identity.ServiceAccount.UserId`)
 - [ ] Implement fail-closed error handling — Kessel errors (connection failures, timeouts) must result in denial, not silent allow
 - [ ] If using Default or Root workspace patterns, look up workspace IDs using the service's own OAuth token (not `x-rh-identity`) with the `x-rh-rbac-org-id` header
+
+For detailed instructions on configuring Kessel client endpoints, authentication credentials, and Clowder service discovery, see the [configuration section of the RBAC v1 to v2 migration guide](/docs/building-with-kessel/how-to/migrate-from-rbac-v1-to-v2/#add-configuration-options-for-the-kessel-client) and [Configure Authentication](/docs/building-with-kessel/how-to/configure-authentication/).
 
 ### Testing
 
