@@ -39,9 +39,13 @@ Identify the grouping concept in your application and decide how it maps to the 
 | Your application's concept | Kessel mapping | Notes |
 |---|---|---|
 | Top-level container (all resources) | Root workspace | Automatically created per tenant |
-| Primary grouping (projects, teams) | Standard workspaces under Default | Create one workspace per group |
+| Primary grouping (projects, teams) | Standard workspaces under Default | Users create workspaces to replace your application's groups |
 | Sub-groups or nested folders | Nested standard workspaces | Permissions inherit downward through the hierarchy |
 | Ungrouped or unclassified resources | Default workspace | Resources not yet assigned to a specific group |
+
+<Aside type="note">
+  Workspaces are owned and managed by users, not by your application. Your application cannot create workspaces on behalf of users. Instead, plan for users to adopt workspaces as a replacement for your existing grouping concept over time. Your application reads workspace assignments and checks permissions against them, but the workspace lifecycle is controlled by the user through the RBAC API.
+</Aside>
 
 <Aside type="tip">
   Workspace IDs for Root and Default workspaces are immutable per tenant. Cache them aggressively. See the [Migration Pattern Reference](/docs/building-with-kessel/reference/migration-pattern-reference/#caching) for caching guidance.
@@ -59,17 +63,42 @@ For each resource type in your application, choose a migration pattern based on 
 
 ### Migrate resource-group assignments
 
-When your application creates or updates resources, set `workspace_id` to reflect the group the resource belongs to. For existing data, run a backfill to populate `workspace_id` based on the current grouping:
+When your application creates or updates resources, set `workspace_id` to reflect the workspace the resource belongs to. For existing data, run a backfill to populate `workspace_id` once users have created their workspaces:
 
 <Steps>
-1. Add a `workspace_id` column to your resource tables (if not already present).
-2. Create workspaces in Kessel that correspond to your existing groups by calling the RBAC workspace API.
-3. Backfill `workspace_id` on existing resources by mapping each resource's current group to the corresponding workspace.
-4. Update resource creation and update paths to set `workspace_id` when a resource is assigned to a group.
+1. Add a `workspace_id` column to your resource tables (if not already present). Default it to the tenant's Default workspace so existing resources remain accessible.
+2. As users create workspaces and assign resources to them, store the `workspace_id` on each resource.
+3. Update resource creation and update paths to accept and persist `workspace_id`.
+4. Consider providing guidance or tooling to help users migrate resources from your legacy grouping concept into workspaces.
 </Steps>
 
 <Aside type="note">
   If your existing groups have a hierarchy (e.g., nested folders), model that hierarchy as parent-child workspace relationships. Permissions granted on a parent workspace automatically apply to child workspaces.
+</Aside>
+
+### Handle deleted workspaces
+
+Users can delete workspaces they created. Build support for this during initial integration rather than retrofitting it later.
+
+**What RBAC does on deletion:**
+
+- Only **standard** workspaces can be deleted. The Root, Default, and Ungrouped Hosts workspaces cannot be deleted, so they are safe permanent targets.
+- Deletion is rejected if the workspace has **child workspaces**. Users must delete or move children first.
+- Deletion is **not** blocked by resources your application has assigned to the workspace. RBAC does not check with your service before deleting.
+- Role bindings scoped to the deleted workspace are removed.
+
+**What RBAC does not do:**
+
+RBAC does not reassign, delete, or notify you about the resources your application assigned to that workspace. Handling orphaned resources is your application's responsibility.
+
+**What your application should do:**
+
+- **Expect denials, not errors** — After deletion, a `Check` against that workspace ID returns *denied*, not an error. Resources still pointing at the deleted workspace silently become inaccessible to everyone. Do not rely on an error to detect this condition.
+- **Reconcile stale references** — Periodically detect resources whose `workspace_id` no longer resolves to an existing workspace, and reassign them to the tenant's Default workspace so they remain accessible under org-wide permissions.
+- **Decide your policy up front** — Choose whether orphaned resources should fall back to the Default workspace, be soft-deleted, or be flagged for user action. Making this decision during initial integration is far easier than retrofitting it once customers have data in production.
+
+<Aside type="caution">
+  Because deletion is not blocked by resource assignments, a user can delete a workspace that still has your application's resources in it. Without reconciliation, those resources become permanently unreachable — no user will pass an authorization check against a workspace that no longer has role bindings.
 </Aside>
 
 ### Replace group-based authorization checks
@@ -125,7 +154,7 @@ Even if you start with the Default workspace for everything, design your permiss
 
 - **Name permissions clearly** — Use the `application:resource_type:operation` format so permissions can be scoped to workspaces later without renaming.
 - **Add a `workspace_id` column early** — Even if every resource points to the Default workspace initially, having the column makes future migration straightforward.
-- **Use role bindings, not direct grants** — All access must go through role bindings on workspaces or tenants. This is how Kessel's authorization graph works; there is no mechanism for granting permissions directly on individual resources.
+- **Use role bindings, not direct grants** — All access goes through role bindings. Today, role bindings target workspaces or tenants. Support for binding roles directly to other resource types is planned, which will enable finer-grained access control without requiring workspace scoping.
 
 For guidance on structuring your permission schema, see [Design Permissions Schema](/docs/building-with-kessel/how-to/design-permissions/).
 
@@ -186,10 +215,6 @@ Once shadow mode shows consistent results across a representative set of tenants
 3. **Monitor** — Watch for increased 403 responses, latency changes, or user-reported access issues. Kessel authorization checks typically complete in 10-50ms.
 4. **Remove the old path** — After a stabilization period with no issues, remove the legacy authorization code and the feature flag.
 </Steps>
-
-<Aside type="caution" title="One-way activation">
-  If your application uses the insights-rbac dual-write pipeline, be aware that tenant activation for v2 writes is **permanent** — once a tenant is switched to v2, v1 writes are blocked and cannot be re-enabled. Plan your rollout accordingly and ensure Kessel authorization is validated before activating v2 writes for a tenant.
-</Aside>
 
 ## Which permission extension to use
 
